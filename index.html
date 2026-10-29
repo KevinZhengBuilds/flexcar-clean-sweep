@@ -1,0 +1,1210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Flexcar Clean Sweep: a retro training game for the Two Person Car Wash SOP.">
+<title>Flexcar Clean Sweep</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+[hidden] { display: none !important; }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Montserrat:wght@800&family=Lexend:wght@400;600&display=swap">
+<style>
+/* Layout: one arcade-cabinet column. Flexcar marquee, the game screen, a control strip, then the SOP notes. */
+:root {
+  --night: #0f2a3f;   /* cabinet body, SOP header navy */
+  --panel: #173b55;   /* bezel */
+  --line: #2f6a8a;    /* bezel edge */
+  --foam: #eef7ff;    /* text */
+  --muted: #a6c3d6;   /* secondary text */
+  --teal: #0b8f9a;    /* Employee A */
+  --teal-hi: #3cc3cc;
+  --orange: #e8913a;  /* Employee B */
+  --orange-hi: #ffb469;
+  --brand: linear-gradient(90deg, #ff9f1c, #ff4f6d 55%, #c04bd6);
+  --go: #7cffb2;
+  --display: "Press Start 2P", ui-monospace, Menlo, monospace;
+  --mark: "Montserrat", "Arial Black", system-ui, sans-serif;
+  --body: "Lexend", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  background: var(--night);
+  color: var(--foam);
+  font-family: var(--body);
+  font-size: 15px;
+  line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 32px;
+}
+.wrap { max-width: 960px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+
+header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; }
+.brand { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.wordmark {
+  font-family: var(--mark); font-weight: 800; font-size: clamp(26px, 4.6vw, 38px);
+  letter-spacing: 0.5px; color: #ffffff; line-height: 1;
+}
+.wordmark .x { position: relative; display: inline-block; }
+.wordmark .x::before {
+  content: ""; position: absolute; left: 50%; top: 50%; width: 1.25em; height: 1.25em;
+  transform: translate(-50%, -52%); border-radius: 50%;
+  background: conic-gradient(from 210deg, transparent 0 36deg, #ff4f6d 36deg, #ff9f1c 170deg, #ff7a3d 230deg, #c04bd6 330deg, transparent 330deg);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+}
+.game-name {
+  font-family: var(--display); font-size: clamp(11px, 2vw, 14px); letter-spacing: 1px;
+  padding: 7px 9px 6px; border-radius: 4px; color: #1b0f1f; background: var(--brand);
+}
+.level { font-family: var(--display); font-size: 9px; letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase; line-height: 1.8; }
+
+.screen {
+  position: relative; border: 4px solid var(--line); border-radius: 6px; background: #000;
+  box-shadow: 0 0 0 6px var(--panel), 0 14px 0 6px #08192a;
+  margin-inline: 6px;
+}
+canvas { display: block; width: 100%; max-width: 100%; aspect-ratio: 5 / 3; image-rendering: pixelated; image-rendering: crisp-edges; }
+
+.overlay {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: rgba(10, 30, 46, 0.86); padding: 16px; overflow: auto;
+}
+.overlay[hidden] { display: none; }
+.card { max-width: 560px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.card h2 {
+  font-family: var(--display); font-weight: 400; margin: 0; line-height: 1.4;
+  font-size: clamp(14px, 3vw, 22px); color: #ffffff; text-wrap: balance;
+}
+.card h2 .hl { background: var(--brand); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.card p { margin: 0; color: var(--foam); max-width: 48ch; }
+.card .sub { color: var(--muted); font-size: 14px; }
+.picks { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+.btn {
+  font-family: var(--display); font-size: 11px; letter-spacing: 1px; text-transform: uppercase; line-height: 1.6;
+  color: #ffffff; background: var(--teal); border: 0; border-radius: 4px;
+  padding: 11px 16px; cursor: pointer; box-shadow: 0 4px 0 #06555c;
+}
+.btn small { display: block; font-family: var(--body); font-size: 12px; letter-spacing: 0; text-transform: none; opacity: 0.9; }
+.btn.b { background: var(--orange); color: #2a1404; box-shadow: 0 4px 0 #9a5517; }
+.btn.brand { background: var(--brand); color: #1b0f1f; box-shadow: 0 4px 0 #7a2a4a; }
+.btn:hover { filter: brightness(1.08); }
+.btn:active { transform: translateY(2px); box-shadow: none; }
+.btn:focus-visible, .pad button:focus-visible { outline: 3px solid #ffffff; outline-offset: 3px; }
+
+.rating { font-family: var(--display); font-size: 12px; color: var(--go); letter-spacing: 2px; }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 0; width: 100%; }
+.stats div { background: rgba(255, 255, 255, 0.07); border-radius: 4px; padding: 8px 6px; min-width: 0; }
+.stats dt { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+.stats dd { margin: 4px 0 0; font-family: var(--display); font-size: 12px; font-variant-numeric: tabular-nums; }
+
+.pad { display: none; justify-content: space-between; gap: 12px; user-select: none; -webkit-user-select: none; }
+.pad .grp { display: flex; gap: 10px; }
+.pad button {
+  font-family: var(--display); font-size: 12px; color: var(--foam);
+  background: var(--panel); border: 2px solid var(--line); border-radius: 50%;
+  width: 64px; height: 64px; touch-action: none;
+}
+.pad button.jump { background: var(--orange); color: #2a1404; border-color: #9a5517; width: 76px; height: 76px; }
+.pad button[aria-pressed="true"] { background: var(--teal); color: #ffffff; }
+@media (pointer: coarse) { .pad { display: flex; } }
+
+.strip { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; color: var(--muted); font-size: 14px; }
+.strip span { display: inline-flex; align-items: center; gap: 6px; }
+kbd {
+  font-family: var(--display); font-size: 9px; color: var(--foam);
+  background: var(--panel); border: 1px solid var(--line); border-bottom-width: 3px; border-radius: 4px; padding: 4px 6px;
+}
+
+.notes { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 18px 32px; }
+.notes section { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.notes h3 { font-family: var(--display); font-weight: 400; font-size: 10px; letter-spacing: 1.5px; color: var(--orange-hi); margin: 0; text-transform: uppercase; }
+.notes p { margin: 0; color: var(--muted); max-width: 62ch; }
+.stations { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.stations li { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 10px; align-items: baseline; padding: 6px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+.stations .n { font-family: var(--display); font-size: 10px; color: var(--teal-hi); }
+.stations .t { font-family: var(--display); font-size: 9px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.side { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 10px; align-items: baseline; color: var(--muted); }
+.tag { font-family: var(--display); font-size: 9px; padding: 4px 6px 3px; border-radius: 3px; color: #ffffff; background: var(--teal); }
+.tag.b { background: var(--orange); color: #2a1404; }
+.source { font-size: 13px; }
+
+@media (max-width: 700px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 560px) {
+  .card .sub, .card .hide-sm { display: none; }
+  .card { gap: 10px; }
+  .card p { font-size: 13px; }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+  .stats div { padding: 4px; }
+  .btn { padding: 8px 12px; font-size: 9px; }
+  .btn small { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .btn:active { transform: none; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="wordmark" aria-label="Flexcar">FLE<span class="x">X</span>CAR</div>
+      <div class="game-name">CLEAN SWEEP</div>
+    </div>
+    <div class="level">Field Ops · San Jose Hub<br>World 1 · Two Person Car Wash</div>
+  </header>
+
+  <div class="screen">
+    <canvas id="game" width="400" height="240" aria-label="Clean Sweep game screen"></canvas>
+
+    <div class="overlay" id="ovTitle">
+      <div class="card">
+        <h2>Two Person <span class="hl">Car Wash</span></h2>
+        <p>Pick your side and work all 8 stations. Every card you collect is a step of the SOP. Collect every step at a station to unlock the next one, then swap the dirty flag for a clean Flexcar flag.</p>
+        <div class="picks">
+          <button class="btn" id="pickA">Employee A<small>Driver side + front</small></button>
+          <button class="btn b" id="pickB">Employee B<small>Passenger side + rear</small></button>
+        </div>
+        <p class="sub">Some steps hide inside sponge blocks. Hit them from below. Jump on mud to clear it.</p>
+      </div>
+    </div>
+
+    <div class="overlay" id="ovPause" hidden>
+      <div class="card">
+        <h2>Paused</h2>
+        <button class="btn brand" id="resumeBtn">Resume</button>
+      </div>
+    </div>
+
+    <div class="overlay" id="ovWin" hidden>
+      <div class="card">
+        <h2>Ready for <span class="hl">handoff!</span></h2>
+        <div class="rating" id="rating">SPOTLESS</div>
+        <dl class="stats">
+          <div><dt>SOP steps</dt><dd id="sDrops">0</dd></div>
+          <div><dt>Mud hits</dt><dd id="sQuota">0</dd></div>
+          <div><dt>Mud cleared</dt><dd id="sMud">0</dd></div>
+          <div><dt>Time</dt><dd id="sTime">0:00</dd></div>
+        </dl>
+        <button class="btn brand" id="againBtn">Wash another car</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="pad" aria-label="Touch controls">
+    <div class="grp">
+      <button data-key="left" aria-label="Move left">&#9664;</button>
+      <button data-key="right" aria-label="Move right">&#9654;</button>
+    </div>
+    <div class="grp">
+      <button id="runToggle" aria-pressed="false" aria-label="Run">RUN</button>
+      <button class="jump" data-key="jump" aria-label="Jump">JUMP</button>
+    </div>
+  </div>
+
+  <div class="strip">
+    <span><kbd>&larr;</kbd><kbd>&rarr;</kbd> or <kbd>A</kbd><kbd>D</kbd> move</span>
+    <span><kbd>SPACE</kbd> or <kbd>&uarr;</kbd> jump (hold for height)</span>
+    <span><kbd>SHIFT</kbd> run</span>
+    <span><kbd>P</kbd> pause</span>
+    <span><kbd>M</kbd> sound</span>
+  </div>
+
+  <div class="notes">
+    <section>
+      <h3>The 8 stations</h3>
+      <ol class="stations" id="stationList"></ol>
+      <p class="source">From CA1-WASH-01, Two Person Car Wash SOP v1.3 (San Jose Hub). Pilot target: 8 to 9 minutes for a normally dirty sedan.</p>
+    </section>
+    <section>
+      <h3>Your side</h3>
+      <div class="side">
+        <span class="tag">A</span><span>Driver side, left half of roof, glass, hood and trunk, plus the full front bumper and grille.</span>
+        <span class="tag b">B</span><span>Passenger side, right half of roof, glass, hood and trunk, plus the full rear bumper.</span>
+      </div>
+      <p>Split every shared panel at the centerline. No overlap, no missed areas.</p>
+      <h3>How you finish</h3>
+      <p>Each station's gate stays locked until you've collected every SOP step there, 28 steps in all. The dirty flag comes down only after the last quality-check step. Then raise the clean Flexcar flag and meet your partner at the car for handoff.</p>
+    </section>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ---------- Stations, from CA1-WASH-01 v1.3 ----------
+  // Each station's SOP steps are the collectibles. `at` is [tileX, tileY]; `block: true` hides the step in a sponge block.
+  const STAGES = [
+    { x: 0, label: 'SET UP', name: 'Assign sides + set up', time: 'Before water', steps: [
+      { text: 'SPLIT PANELS AT THE CENTERLINE', at: [6, 12] },
+      { text: 'STAGE HOSE, MITT, TOWELS, DRESSING', at: [11, 10] },
+      { text: 'WHEEL TOOLS SEPARATE FROM PAINT', at: [17, 9], block: true },
+      { text: 'CLOSE WINDOWS, SUNROOF AND DOORS', at: [20, 8] },
+    ] },
+    { x: 21, label: 'PRE-RINSE', name: 'Pre-rinse', time: '0:00-0:45', steps: [
+      { text: 'RINSE ROOF AND GLASS FIRST', at: [26, 12] },
+      { text: 'THEN UPPER, THEN LOWER PANELS', at: [32, 7] },
+      { text: 'KEEP SPRAY OUT OF THE CABIN', at: [35, 9] },
+    ] },
+    { x: 40, label: 'WASH', name: 'Wash top to bottom', time: '0:45-2:45', steps: [
+      { text: 'A: FRONT TO REAR. B: REAR TO FRONT', at: [45, 8] },
+      { text: 'HIGH SURFACES FIRST, THEN LOWER', at: [50, 11] },
+      { text: 'STRAIGHT, OVERLAPPING STROKES', at: [53, 9], block: true },
+      { text: 'RINSE SOAP BEFORE IT DRIES', at: [60, 8] },
+    ] },
+    { x: 62, label: 'FINAL RINSE', name: 'Final rinse', time: '2:45-3:30', steps: [
+      { text: 'RINSE EACH SECTION TOP TO BOTTOM', at: [68, 9], block: true },
+      { text: 'AIM DOWN, ONTO YOUR OWN PANELS', at: [76, 4] },
+      { text: 'CHECK SEAMS AND MIRRORS FOR SOAP', at: [81, 12] },
+    ] },
+    { x: 82, label: 'SQUEEGEE+DRY', name: 'Squeegee + hand dry', time: '3:30-5:30', steps: [
+      { text: 'SQUEEGEE THE WHOLE VEHICLE FIRST', at: [93, 7] },
+      { text: 'DRY GLASS FIRST WITH A FRESH TOWEL', at: [104, 9], block: true },
+      { text: 'THEN ROOF, HOOD, DOORS, LOWER', at: [112, 8] },
+    ] },
+    { x: 114, label: 'TIRE SHINE', name: 'Tire shine', time: '5:30-6:30', steps: [
+      { text: 'DRY THE SIDEWALLS FIRST', at: [120, 10] },
+      { text: 'THIN, EVEN COAT ON SIDEWALLS ONLY', at: [126, 9] },
+      { text: 'WIPE OFF EXCESS DRESSING', at: [132, 8] },
+    ] },
+    { x: 135, label: 'DOOR TRIM', name: 'Door trim', time: '6:30-8:00', steps: [
+      { text: 'OPEN ONE DOOR AT A TIME', at: [141, 8], block: true },
+      { text: 'CLEANER ON A DEDICATED TOWEL', at: [143, 7] },
+      { text: 'KEEP CONTROLS DRY, CLOSE THE DOOR', at: [151, 9] },
+    ] },
+    { x: 153, label: 'QUALITY CHECK', name: 'Final quality check', time: '8:00-8:30', steps: [
+      { text: 'NO DIRT, SOAP, STREAKS OR SPOTS', at: [160, 12] },
+      { text: 'NO DRIPS ON MIRRORS OR SEAMS', at: [164, 10] },
+      { text: 'EVEN TIRE FINISH, NO OVERSPRAY', at: [168, 11] },
+      { text: 'DOOR TRIM CLEAN, DOORS CLOSED', at: [175, 8] },
+      { text: 'TOOLS BACK, VEHICLE READY', at: [179, 4] },
+    ] },
+  ];
+  // The gate for each station sits at its sign post; station 1 has none, station 8's gate is the flagpole.
+  const gateX = i => (STAGES[i].x + 2) * 16 + 8;
+
+  const T = 16, VW = 400, VH = 240, ROWS = 15, COLS = 200;
+  const POLE_X = 186 * T + 8, POLE_TOP = 3 * T, POLE_BOTTOM = 12 * T;
+  const FLAG_W = 38, FLAG_H = 22;
+  const CAR_X = 190 * T;
+  const SOLID = new Set(['#', 'B', '?', 'U', 'X', 'L', 'R']);
+  const FONT = '8px "Press Start 2P", monospace';
+
+  const cvs = document.getElementById('game');
+  const ctx = cvs.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  try { document.fonts && document.fonts.load(FONT); } catch (e) {}
+
+  document.getElementById('stationList').innerHTML = STAGES.map((s, i) =>
+    `<li><span class="n">${i + 1}</span><span>${s.name}</span><span class="t">${s.time}</span></li>`).join('');
+
+  // ---------- Sprites ----------
+  function sprite(rows, pal) {
+    const w = Math.max(...rows.map(r => r.length)), h = rows.length;
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const g = c.getContext('2d');
+    rows.forEach((r, y) => [...r].forEach((ch, x) => { if (pal[ch]) { g.fillStyle = pal[ch]; g.fillRect(x, y, 1, 1); } }));
+    return c;
+  }
+  function flip(src) {
+    const c = document.createElement('canvas'); c.width = src.width; c.height = src.height;
+    const g = c.getContext('2d'); g.translate(src.width, 0); g.scale(-1, 1); g.drawImage(src, 0, 0);
+    return c;
+  }
+  const techTop = [
+    '.....KKKKKK.....',
+    '....KCCCCCCK....',
+    '...KCCCCCCCCK...',
+    '...KccccccccccK.',
+    '...KHHSSSSKSK...',
+    '...KHSSSSSKSSK..',
+    '...KHSSSSSSSSK..',
+    '....KSSSHHHHK...',
+  ];
+  const techStand = techTop.concat([
+    '.....KKSSSSK....',
+    '....KYYOYYOYK...',
+    '...KYYYOOOOYYK..',
+    '..KGGKOOOOOKGGK.',
+    '...KKOOOOOOOK...',
+    '....KOOOKOOOK...',
+    '...KWWWK.KWWWK..',
+    '...KKKKK.KKKKK..',
+  ]);
+  const techWalk = techTop.concat([
+    '.....KKSSSSK....',
+    '....KYYOYYOYK...',
+    '...KYYYOOOOYYK..',
+    '..KGGKOOOOOKGGK.',
+    '...KKOOOOOOOK...',
+    '...KOOOK.KOOOK..',
+    '..KWWWK...KWWWK.',
+    '..KKKK.....KKKK.',
+  ]);
+  const techJump = techTop.concat([
+    '.....KKSSSSK.GG.',
+    '....KYYOYYOYKGG.',
+    '...KYYYOOOOYYK..',
+    '..KGGKOOOOOK....',
+    '...KKOOOOOOOK...',
+    '...KOOOK.KOOOK..',
+    '..KWWWK...KWWWK.',
+    '..KKKK.....KKKK.',
+  ]);
+  const BASE = { K: '#1b1b2f', S: '#f2c09a', H: '#4a2c1a', O: '#1d3a57', G: '#ffffff', W: '#3a2a20' };
+  const ROLE_PAL = {
+    A: { C: '#0b8f9a', c: '#06666e', Y: '#7fd6dc' },
+    B: { C: '#e8913a', c: '#b5651d', Y: '#ffc98a' },
+  };
+  const TECH = {};
+  for (const r of ['A', 'B']) {
+    const pal = Object.assign({}, BASE, ROLE_PAL[r]);
+    const s = { stand: sprite(techStand, pal), walk: sprite(techWalk, pal), jump: sprite(techJump, pal) };
+    s.standL = flip(s.stand); s.walkL = flip(s.walk); s.jumpL = flip(s.jump);
+    TECH[r] = s;
+  }
+  const MUD = { M: '#7a4a26', m: '#56321a', W: '#ffffff', K: '#1b1b2f' };
+  const mudRows = [
+    '......MMMM......',
+    '....MMMMMMMM....',
+    '...MMmMMMMmMM...',
+    '..MMMMMMMMMMMM..',
+    '..MMWWMMMMWWMM..',
+    '.MMMWKMMMMKWMMM.',
+    '.MMMMMMMMMMMMMM.',
+    '.MMMMMKKKKMMMMM.',
+    '.mMMMMMMMMMMMMm.',
+    '..mmMMMMMMMMmm..',
+    '..KK.mmmmmm.KK..',
+    '.KKK........KKK.',
+  ];
+  const DROP = { K: '#0d2a5c', L: '#4fc3f7', D: '#1e88e5', W: '#ffffff' };
+  const dropRows = [
+    '...KK...',
+    '...KK...',
+    '..KLLK..',
+    '..KLLK..',
+    '.KLWLLK.',
+    '.KLWLLK.',
+    'KLWLLLLK',
+    'KLLLLLLK',
+    'KLLLLDDK',
+    '.KLDDDK.',
+    '..KKKK..',
+  ];
+  const CARD = { K: '#0f2a3f', T: '#0b8f9a', W: '#ffffff', k: '#8aa4b8', G: '#ffd23f' };
+  const cardRows = [
+    '...KKKK...',
+    'KKKKGGKKKK',
+    'KTTTTTTTTK',
+    'KWWWWWWWWK',
+    'KWkkkkkWWK',
+    'KWWWWWWWWK',
+    'KWkkkkWWWK',
+    'KWWWWWWWWK',
+    'KWkkkkkkWK',
+    'KWWWWWWWWK',
+    'KWWWWWWWWK',
+    'KKKKKKKKKK',
+  ];
+  const SPR = {};
+  SPR.mud = sprite(mudRows, MUD); SPR.mud2 = flip(SPR.mud);
+  SPR.drop = sprite(dropRows, DROP);
+  SPR.card = sprite(cardRows, CARD);
+
+  // ---------- Flexcar wordmark in a 3x5 pixel font ----------
+  const GLYPH = {
+    F: ['111', '100', '110', '100', '100'],
+    L: ['100', '100', '100', '100', '111'],
+    E: ['111', '100', '110', '100', '111'],
+    X: ['101', '101', '010', '101', '101'],
+    C: ['111', '100', '100', '100', '111'],
+    A: ['010', '101', '111', '101', '101'],
+    R: ['110', '101', '110', '101', '101'],
+  };
+  const MARK_W = 27; // 7 glyphs x 4px - 1
+  function drawWordmark(x, y, color, ring = true) {
+    x = Math.round(x); y = Math.round(y);
+    [...'FLEXCAR'].forEach((ch, i) => {
+      GLYPH[ch].forEach((row, gy) => [...row].forEach((bit, gx) => {
+        if (bit === '1') { ctx.fillStyle = color; ctx.fillRect(x + i * 4 + gx, y + gy, 1, 1); }
+      }));
+    });
+    if (!ring) return;
+    // gradient ring around the X: pink on the left, orange over the top, purple down the right
+    const cx = x + 13, cy = y + 2;
+    const ringPx = [[-3, 0, '#ff4f6d'], [-3, -1, '#ff4f6d'], [-2, -2, '#ff6a52'], [-1, -3, '#ff8a3a'], [0, -3, '#ff9f1c'],
+      [1, -3, '#ff9f1c'], [2, -2, '#ff7a3d'], [3, -1, '#e0569a'], [3, 0, '#c04bd6'], [3, 1, '#c04bd6'], [2, 2, '#a35cf0']];
+    for (const [dx, dy, c] of ringPx) { ctx.fillStyle = c; ctx.fillRect(cx + dx, cy + dy, 1, 1); }
+  }
+
+  function tileCanvas(draw) {
+    const c = document.createElement('canvas'); c.width = T; c.height = T;
+    const g = c.getContext('2d'); draw(g); return c;
+  }
+  function px(g, c, x, y, w = 1, h = 1) { g.fillStyle = c; g.fillRect(x, y, w, h); }
+  const TILES = {
+    groundTop: tileCanvas(g => {
+      px(g, '#8d97a8', 0, 0, 16, 16); px(g, '#d3dbe6', 0, 0, 16, 2); px(g, '#7fd3ff', 2, 1, 5, 1);
+      px(g, '#5f6878', 0, 3, 16, 1); px(g, '#6b7486', 15, 0, 1, 16);
+      [[4, 7], [10, 10], [6, 13], [12, 5]].forEach(([x, y]) => px(g, '#7b8597', x, y));
+    }),
+    groundBody: tileCanvas(g => {
+      px(g, '#7a8496', 0, 0, 16, 16); px(g, '#5f6878', 15, 0, 1, 16); px(g, '#5f6878', 0, 15, 16, 1);
+      [[3, 4], [9, 9], [12, 2], [5, 12]].forEach(([x, y]) => px(g, '#6a7385', x, y));
+    }),
+    brick: tileCanvas(g => {
+      px(g, '#c8643c', 0, 0, 16, 16); px(g, '#e8895c', 0, 0, 16, 1);
+      px(g, '#7d3a22', 0, 7, 16, 1); px(g, '#7d3a22', 0, 15, 16, 1);
+      px(g, '#7d3a22', 7, 0, 1, 7); px(g, '#7d3a22', 15, 0, 1, 7);
+      px(g, '#7d3a22', 3, 8, 1, 7); px(g, '#7d3a22', 11, 8, 1, 7);
+    }),
+    sponge: tileCanvas(g => {
+      px(g, '#b58a00', 0, 0, 16, 16); px(g, '#ffd23f', 1, 1, 14, 14); px(g, '#fff1a8', 1, 1, 14, 1);
+      [[3, 4], [8, 3], [5, 9], [11, 8], [3, 12], [9, 12], [12, 4]].forEach(([x, y]) => px(g, '#e0a800', x, y, 2, 2));
+      px(g, '#ffffff', 10, 10, 3, 3); px(g, '#ffd23f', 11, 11, 1, 1);
+    }),
+    used: tileCanvas(g => {
+      px(g, '#5e5340', 0, 0, 16, 16); px(g, '#9a8a6a', 1, 1, 14, 14);
+      [[4, 4], [11, 4], [4, 11], [11, 11]].forEach(([x, y]) => px(g, '#5e5340', x, y));
+    }),
+    stone: tileCanvas(g => {
+      px(g, '#6d7a99', 0, 0, 16, 16); px(g, '#9aa7c7', 0, 0, 16, 2); px(g, '#9aa7c7', 0, 0, 2, 16);
+      px(g, '#48536e', 0, 14, 16, 2); px(g, '#48536e', 14, 0, 2, 16);
+    }),
+  };
+  function pipeTile(side, top) {
+    return tileCanvas(g => {
+      const bx = side === 'L' ? 2 : 0, bw = 14;
+      px(g, '#0d47a1', bx, 0, bw, 16); px(g, '#1e88e5', bx + (side === 'L' ? 1 : 0), 0, bw - 1, 16);
+      if (side === 'L') { px(g, '#64b5f6', bx + 3, 0, 2, 16); px(g, '#90caf9', bx + 4, 0, 1, 16); }
+      else px(g, '#1565c0', 9, 0, 3, 16);
+      if (top) {
+        px(g, '#0d47a1', 0, 0, 16, 7); px(g, '#1e88e5', side === 'L' ? 1 : 0, 1, 15, 5);
+        if (side === 'L') { px(g, '#64b5f6', 3, 1, 2, 5); px(g, '#90caf9', 4, 1, 1, 5); }
+        else px(g, '#1565c0', 10, 1, 3, 5);
+      }
+    });
+  }
+  TILES.L = pipeTile('L', false); TILES.R = pipeTile('R', false);
+  TILES.Lt = pipeTile('L', true); TILES.Rt = pipeTile('R', true);
+
+  // ---------- Level ----------
+  function buildLevel() {
+    const tiles = Array.from({ length: ROWS }, () => Array(COLS).fill(' '));
+    const drops = [], mud = [], signs = [];
+    const set = (x, y, c) => { if (x >= 0 && x < COLS && y >= 0 && y < ROWS) tiles[y][x] = c; };
+    const ground = (a, b) => { for (let x = a; x <= b; x++) { set(x, 13, '#'); set(x, 14, '#'); } };
+    const row = (a, b, y, c) => { for (let x = a; x <= b; x++) set(x, y, c); };
+    const pipe = (x, h) => { for (let y = 13 - h; y < 13; y++) { set(x, y, 'L'); set(x + 1, y, 'R'); } };
+    const stairs = (x, h, dir) => { for (let i = 0; i < h; i++) for (let y = 12 - i; y <= 12; y++) set(x + i * dir, y, 'X'); };
+    const blob = x => mud.push({ x: x * T + 1, y: 13 * T - 12, w: 14, h: 12, vx: 0, vy: 0, dir: -1, dead: false, squash: 0, t: x });
+
+    // 1 Set up / 2 Pre-rinse
+    ground(0, 58);
+    row(16, 20, 9, 'B'); set(18, 5, 'B');
+    blob(23);
+    pipe(27, 2); pipe(35, 3);
+    // 3 Wash
+    pipe(45, 4);
+    blob(50);
+    row(52, 55, 9, 'B');
+    blob(56);
+    // 4 Final rinse
+    ground(62, 110);
+    row(66, 72, 9, 'B');
+    blob(71);
+    row(74, 78, 5, 'B');
+    blob(80);
+    // 5 Squeegee + dry
+    stairs(88, 4, 1); stairs(98, 4, -1);
+    blob(93);
+    blob(102); set(104, 9, 'B'); blob(106); set(108, 9, 'B');
+    // 6 Tire shine
+    ground(114, 150);
+    pipe(120, 2);
+    blob(123);
+    pipe(126, 3);
+    blob(129);
+    pipe(132, 4);
+    // 7 Door trim
+    row(138, 144, 8, 'B');
+    blob(140); blob(146);
+    // 8 Quality check
+    ground(153, 199);
+    blob(164); blob(169);
+    stairs(172, 8, 1);
+    set(186, 12, 'X');
+
+    // SOP step cards
+    STAGES.forEach((s, si) => s.steps.forEach((st, k) => {
+      const [tx, ty] = st.at;
+      if (st.block) set(tx, ty, '?');
+      drops.push({ x: tx * T + 3, y: ty * T + 2, got: false, hidden: !!st.block, tx, ty, t: tx * 0.7, stage: si, num: `${si + 1}.${k + 1}`, text: st.text });
+    }));
+    STAGES.forEach((s, i) => signs.push({ x: (s.x + 2) * T, label: `${i + 1} ${s.label}` }));
+    return { tiles, drops, mud, signs };
+  }
+
+  // ---------- State ----------
+  let G, P;
+  let role = 'A';
+  const keys = {}, pressed = {};
+  let touchRun = false;
+
+  function newGame(state) {
+    const L = buildLevel();
+    G = {
+      state, tiles: L.tiles, drops: L.drops, mud: L.mud, signs: L.signs,
+      total: L.drops.length, got: 0, mudCleared: 0, hits: 0, frames: 0, t: 0, cam: 0,
+      particles: [], bumps: new Map(), toast: null, denyCool: 0, stage: -1,
+      open: STAGES.map((_, i) => i === 0),
+      checkpoint: { x: 2 * T, y: 12 * T },
+      flag: { phase: null, t: 0, dirtyY: POLE_TOP + 4, dirtyA: 1, cleanY: null },
+      carDirt: 1, partner: false,
+      bubbles: Array.from({ length: 26 }, () => ({ x: Math.random() * VW, y: Math.random() * VH, r: 2 + Math.random() * 5, s: 0.15 + Math.random() * 0.35, p: Math.random() * 6 })),
+      dirt: Array.from({ length: 14 }, () => ({ dx: 6 + Math.random() * 52, dy: 4 + Math.random() * 18, r: 2 + Math.random() * 4 })),
+    };
+    P = { x: 2 * T, y: 12 * T + 1, w: 12, h: 15, vx: 0, vy: 0, onGround: false, face: 1, coyote: 0, buffer: 0, inv: 0, anim: 0 };
+  }
+
+  // ---------- Physics ----------
+  function solidAt(tx, ty) {
+    if (tx < 0 || tx >= COLS) return true;
+    if (ty < 0 || ty >= ROWS) return false;
+    return SOLID.has(G.tiles[ty][tx]);
+  }
+  function solidsIn(e) {
+    const out = [];
+    const x0 = Math.floor(e.x / T), x1 = Math.floor((e.x + e.w - 0.01) / T);
+    const y0 = Math.floor(e.y / T), y1 = Math.floor((e.y + e.h - 0.01) / T);
+    for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) if (solidAt(tx, ty)) out.push({ tx, ty });
+    return out;
+  }
+  function moveEntity(e) {
+    let hitX = false, head = null;
+    e.x += e.vx;
+    const hx = solidsIn(e);
+    if (hx.length) {
+      if (e.vx > 0) e.x = Math.min(...hx.map(h => h.tx)) * T - e.w;
+      else if (e.vx < 0) e.x = (Math.max(...hx.map(h => h.tx)) + 1) * T;
+      hitX = true;
+    }
+    e.y += e.vy;
+    e.onGround = false;
+    const hy = solidsIn(e);
+    if (hy.length) {
+      if (e.vy > 0) { e.y = Math.min(...hy.map(h => h.ty)) * T - e.h; e.onGround = true; }
+      else if (e.vy < 0) {
+        const ty = Math.max(...hy.map(h => h.ty));
+        e.y = (ty + 1) * T;
+        const cx = e.x + e.w / 2;
+        head = hy.filter(h => h.ty === ty).sort((a, b) => Math.abs(a.tx * T + 8 - cx) - Math.abs(b.tx * T + 8 - cx))[0];
+      }
+      e.vy = 0;
+    }
+    return { hitX, head };
+  }
+  const overlap = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+
+  // ---------- Effects ----------
+  function burst(x, y, n, color, spread = 2, up = 2.5) {
+    for (let i = 0; i < n; i++) G.particles.push({ kind: 'pix', x, y, vx: (Math.random() - 0.5) * spread * 2, vy: -Math.random() * up, life: 30 + Math.random() * 20, color });
+  }
+  function sparkle(x, y) { G.particles.push({ kind: 'spark', x, y, vx: 0, vy: -0.2, life: 24 }); }
+  function toast(lines, frames = 120, color = '#ffd23f') { G.toast = { lines: [].concat(lines), t: frames, color }; }
+
+  let AC = null, muted = false;
+  function sfx(name) {
+    if (!AC || muted) return;
+    const now = AC.currentTime;
+    const tone = (f1, f2, d, type = 'square', v = 0.05, delay = 0) => {
+      const o = AC.createOscillator(), g = AC.createGain();
+      o.type = type; o.frequency.setValueAtTime(f1, now + delay);
+      if (f2) o.frequency.exponentialRampToValueAtTime(f2, now + delay + d);
+      g.gain.setValueAtTime(v, now + delay); g.gain.exponentialRampToValueAtTime(0.0001, now + delay + d);
+      o.connect(g).connect(AC.destination); o.start(now + delay); o.stop(now + delay + d + 0.02);
+    };
+    switch (name) {
+      case 'jump': tone(300, 620, 0.14); break;
+      case 'drop': tone(1300, 1900, 0.07, 'triangle', 0.06); tone(1900, 2500, 0.07, 'triangle', 0.04, 0.05); break;
+      case 'stomp': tone(240, 70, 0.14); break;
+      case 'hurt': tone(420, 110, 0.32, 'sawtooth', 0.04); break;
+      case 'bump': tone(160, 110, 0.06, 'square', 0.04); break;
+      case 'splash': tone(700, 90, 0.45, 'triangle', 0.06); break;
+      case 'deny': tone(190, 170, 0.18, 'square', 0.04); break;
+      case 'stage': tone(660, 0, 0.08, 'square', 0.04); tone(990, 0, 0.1, 'square', 0.04, 0.08); break;
+      case 'swap': tone(500, 1100, 0.35, 'triangle', 0.06); break;
+      case 'fanfare': [523, 659, 784, 1046, 784, 1046].forEach((f, i) => tone(f, 0, 0.16, 'square', 0.04, i * 0.11)); break;
+    }
+  }
+
+  // ---------- Update ----------
+  function hitBlock(tx, ty) {
+    const c = G.tiles[ty][tx];
+    G.bumps.set(tx + ',' + ty, 10);
+    if (c === '?') {
+      G.tiles[ty][tx] = 'U';
+      const d = G.drops.find(d => d.hidden && d.tx === tx && d.ty === ty);
+      if (d) {
+        G.particles.push({ kind: 'card', x: d.x, y: ty * T - 8, vx: 0, vy: -3.4, life: 30 });
+        collect(d);
+      }
+    } else sfx('bump');
+    for (const e of G.mud) {
+      if (!e.dead && e.x + e.w > tx * T && e.x < tx * T + T && Math.abs(e.y + e.h - ty * T) < 3) squashMud(e);
+    }
+  }
+  function squashMud(e) {
+    e.dead = true; e.squash = 40; G.mudCleared++;
+    burst(e.x + 7, e.y + 8, 10, '#7a4a26');
+    sfx('stomp');
+  }
+  function hurt(from) {
+    G.hits++;
+    burst(P.x + 6, P.y + 8, 8, '#7a4a26');
+    P.inv = 90;
+    P.vx = (P.x < from.x ? -1 : 1) * 2.4; P.vy = -3.5;
+    toast(['MUD ON YOUR UNIFORM!', 'JUMP ON MUD TO CLEAR IT'], 90);
+    sfx('hurt');
+  }
+  const stepsLeft = si => G.drops.filter(d => d.stage === si && !d.got).length;
+  function collect(d) {
+    d.got = true; d.hidden = false; G.got++;
+    for (let i = 0; i < 4; i++) sparkle(d.x + 5 + (Math.random() - 0.5) * 10, d.y + 5 + (Math.random() - 0.5) * 10);
+    sfx('drop');
+    const s = STAGES[d.stage];
+    if (stepsLeft(d.stage) === 0) {
+      if (d.stage + 1 < STAGES.length) {
+        G.open[d.stage + 1] = true;
+        const gx = gateX(d.stage + 1);
+        for (let i = 0; i < 10; i++) sparkle(gx + (Math.random() - 0.5) * 6, 40 + Math.random() * 160);
+        toast([`STEP ${d.num}: ${d.text}`, `${s.label} DONE. GATE OPEN!`], 170, '#7cffb2');
+      } else {
+        toast([`STEP ${d.num}: ${d.text}`, 'ALL STEPS DONE. SWAP THE FLAG!'], 170, '#7cffb2');
+      }
+      sfx('stage');
+    } else {
+      toast([`STEP ${d.num}: ${d.text}`, `${stepsLeft(d.stage)} MORE ${s.label} STEP${stepsLeft(d.stage) > 1 ? 'S' : ''}`], 150, '#ffffff');
+    }
+  }
+  function currentStage() {
+    let si = 0;
+    STAGES.forEach((s, i) => { if (i === 0 || P.x + P.w >= gateX(i)) si = i; });
+    return si;
+  }
+
+  function updatePlayer() {
+    const p = P;
+    const run = keys.run || touchRun;
+    const max = run ? 3.0 : 1.8, acc = run ? 0.14 : 0.11;
+    const dir = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
+    if (dir) {
+      p.vx += dir * acc * (p.onGround ? 1 : 0.8);
+      if (p.onGround && Math.sign(p.vx) !== dir) p.vx += dir * 0.15;
+      p.face = dir;
+    } else {
+      const f = p.onGround ? 0.12 : 0.03;
+      p.vx = Math.abs(p.vx) <= f ? 0 : p.vx - Math.sign(p.vx) * f;
+    }
+    if (Math.abs(p.vx) > max) p.vx -= Math.sign(p.vx) * Math.min(0.1, Math.abs(p.vx) - max);
+
+    p.coyote = p.onGround ? 6 : p.coyote - 1;
+    p.buffer = pressed.jump ? 6 : p.buffer - 1;
+    if (p.buffer > 0 && p.coyote > 0) {
+      p.vy = -(6.6 + Math.abs(p.vx) * 0.25);
+      p.coyote = 0; p.buffer = 0;
+      sfx('jump');
+    }
+    const g = p.vy < 0 && keys.jump ? 0.27 : 0.6;
+    p.vy = Math.min(p.vy + g, 7);
+    const r = moveEntity(p);
+    if (r.hitX) p.vx = 0;
+    if (r.head) hitBlock(r.head.tx, r.head.ty);
+    if (p.inv > 0) p.inv--;
+    p.anim += Math.abs(p.vx) * 0.12;
+
+    // Station gates: locked until every SOP step of the previous station is collected
+    for (let i = 1; i < STAGES.length; i++) {
+      const gx = gateX(i);
+      if (!G.open[i] && p.x + p.w > gx - 3 && p.x < gx + 3) {
+        p.x = gx - 3 - p.w; p.vx = Math.min(p.vx, 0) - 1;
+        if (G.denyCool <= 0) {
+          const left = stepsLeft(i - 1);
+          toast(['GATE LOCKED', `COLLECT ${left} MORE ${STAGES[i - 1].label} STEP${left > 1 ? 'S' : ''}`], 120);
+          sfx('deny'); G.denyCool = 60;
+        }
+      }
+    }
+    // Checkpoint + station intro on first arrival
+    const si = currentStage();
+    if (si > 0 && gateX(si) + 4 > G.checkpoint.x) G.checkpoint = { x: gateX(si) + 4, y: 12 * T };
+    if (si > G.stage) {
+      G.stage = si;
+      const s = STAGES[si];
+      toast([`STATION ${si + 1}: ${s.label}`, `COLLECT ${s.steps.length} SOP STEPS`], 160, '#ffd23f');
+    }
+
+    // Fell in a pit
+    if (p.y > ROWS * T + 24) {
+      burst(p.x, ROWS * T - 4, 14, '#4fc3f7', 1.5, 4);
+      Object.assign(p, { x: G.checkpoint.x, y: G.checkpoint.y - 40, vx: 0, vy: 0, inv: 60 });
+      toast('SPLASH! BACK TO THE STATION', 100);
+      sfx('splash');
+    }
+
+    // SOP step cards
+    for (const d of G.drops) {
+      if (!d.got && !d.hidden && overlap(p, { x: d.x, y: d.y, w: 10, h: 12 })) collect(d);
+    }
+
+    // Flagpole
+    if (p.x + p.w >= POLE_X - 9 && p.y < 13 * T) {
+      if (G.got >= G.total) {
+        G.state = 'flag'; G.flag.phase = 'slide'; G.flag.t = 0;
+        p.x = POLE_X - p.w; p.vx = 0; p.vy = 0; p.face = 1;
+        sfx('swap');
+      } else {
+        p.x = POLE_X - p.w - 2; p.vx = -1.5;
+        if (G.denyCool <= 0) {
+          const left = G.total - G.got;
+          toast(['FLAG LOCKED', `COLLECT ${left} MORE SOP STEP${left > 1 ? 'S' : ''}`], 120); sfx('deny'); G.denyCool = 60;
+        }
+      }
+    }
+    if (G.denyCool > 0) G.denyCool--;
+  }
+
+  function updateMud() {
+    for (const e of G.mud) {
+      e.t++;
+      if (e.dead) { if (e.squash > 0) e.squash--; continue; }
+      if (Math.abs(e.x - P.x) > VW + 40) continue;
+      e.vx = e.dir * 0.5;
+      e.vy = Math.min(e.vy + 0.5, 6);
+      const r = moveEntity(e);
+      if (r.hitX) e.dir *= -1;
+      else if (e.onGround) {
+        const ax = e.dir > 0 ? e.x + e.w + 1 : e.x - 1;
+        if (!solidAt(Math.floor(ax / T), Math.floor((e.y + e.h + 2) / T))) e.dir *= -1;
+      }
+      if (G.state === 'play' && overlap(P, e)) {
+        if (P.vy > 0 && P.y + P.h - e.y < 10) { squashMud(e); P.vy = keys.jump ? -7 : -4.5; }
+        else if (P.inv <= 0) hurt(e);
+      }
+    }
+  }
+
+  function updateFlag() {
+    const f = G.flag; f.t++;
+    const low = POLE_BOTTOM - FLAG_H - 2, high = POLE_TOP + 4;
+    if (f.phase === 'slide') {
+      P.y = Math.min(P.y + 2.2, POLE_BOTTOM - P.h);
+      f.dirtyY = Math.min(f.dirtyY + 2.2, low);
+      if (P.y >= POLE_BOTTOM - P.h && f.dirtyY >= low) { f.phase = 'swap'; f.t = 0; }
+    } else if (f.phase === 'swap') {
+      f.dirtyA = Math.max(0, 1 - f.t / 24);
+      if (f.t % 3 === 0) burst(POLE_X - 18, POLE_BOTTOM - 12, 2, '#7a5a3a', 1.2, 1.5);
+      if (f.t >= 30) { f.phase = 'raise'; f.t = 0; f.cleanY = low; }
+    } else if (f.phase === 'raise') {
+      f.cleanY = Math.max(high, f.cleanY - 1.8);
+      if (f.t % 5 === 0) sparkle(POLE_X - FLAG_W + Math.random() * FLAG_W, f.cleanY + Math.random() * FLAG_H);
+      if (f.cleanY <= high) { f.phase = 'walk'; f.t = 0; P.x = POLE_X + 3; G.partner = true; sfx('fanfare'); toast('FINAL QUALITY CHECK WITH YOUR PARTNER', 150, '#ffffff'); }
+    } else if (f.phase === 'walk') {
+      P.face = 1; P.vx = 1.2;
+      P.vy = Math.min(P.vy + 0.6, 7);
+      moveEntity(P);
+      P.anim += 0.15;
+      if (P.x + P.w >= CAR_X - 4) { P.vx = 0; f.phase = 'clean'; f.t = 0; }
+    } else if (f.phase === 'clean') {
+      G.carDirt = Math.max(0, 1 - f.t / 60);
+      if (f.t % 3 === 0) sparkle(CAR_X + Math.random() * 64, 13 * T - 30 + Math.random() * 26);
+      if (f.t === 50) sfx('drop');
+      if (f.t >= 110) { G.state = 'win'; showWin(); }
+    }
+  }
+
+  function step() {
+    G.t++;
+    if (pressed.mute) { muted = !muted; if (G.state !== 'title') toast(muted ? 'SOUND OFF' : 'SOUND ON', 60); }
+    if (pressed.pause && (G.state === 'play' || G.state === 'paused')) setPaused(G.state === 'play');
+    if (pressed.enter) {
+      if (G.state === 'title') start('A');
+      else if (G.state === 'win') restart();
+      else if (G.state === 'paused') setPaused(false);
+    }
+
+    if (G.state === 'play') { G.frames++; updatePlayer(); updateMud(); }
+    else if (G.state === 'flag') { updateFlag(); updateMud(); }
+    else if (G.state === 'win') { if (G.t % 6 === 0) sparkle(CAR_X + Math.random() * 64, 13 * T - 30 + Math.random() * 26); }
+
+    if (G.state !== 'paused') {
+      for (const pt of G.particles) {
+        pt.x += pt.vx; pt.y += pt.vy; pt.life--;
+        if (pt.kind === 'pix' || pt.fall) pt.vy += 0.2;
+        if (pt.kind === 'card') pt.vy += 0.22;
+      }
+      G.particles = G.particles.filter(pt => pt.life > 0);
+      for (const [k, v] of G.bumps) { if (v <= 1) G.bumps.delete(k); else G.bumps.set(k, v - 1); }
+      if (G.toast && --G.toast.t <= 0) G.toast = null;
+      for (const d of G.drops) d.t += 0.08;
+      for (const b of G.bubbles) { b.y -= b.s; b.p += 0.03; if (b.y < -10) { b.y = VH + 10; b.x = Math.random() * VW; } }
+    }
+
+    const target = G.state === 'title' ? 0 : P.x - VW * 0.4;
+    G.cam = Math.max(0, Math.min(COLS * T - VW, target));
+    for (const k in pressed) pressed[k] = false;
+  }
+
+  // ---------- Render ----------
+  function text(str, x, y, color = '#fff', align = 'left') {
+    ctx.font = FONT; ctx.textBaseline = 'top'; ctx.textAlign = align;
+    ctx.fillStyle = 'rgba(10,14,32,.85)'; ctx.fillText(str, x + 1, y + 1);
+    ctx.fillStyle = color; ctx.fillText(str, x, y);
+  }
+
+  // A Flexcar sedan. o: { body, shade, edge, glass, dirt, logo }
+  function drawCar(x, y, o) {
+    ctx.fillStyle = 'rgba(0,0,0,.18)'; ctx.fillRect(x + 2, y + 28, 62, 2);
+    ctx.fillStyle = o.edge; ctx.fillRect(x, y + 12, 64, 13);
+    ctx.fillStyle = o.body; ctx.fillRect(x + 1, y + 12, 62, 11);
+    ctx.fillStyle = o.shade; ctx.fillRect(x + 1, y + 21, 62, 2);
+    ctx.fillStyle = o.edge; ctx.fillRect(x + 14, y + 1, 34, 12);
+    ctx.fillStyle = o.body; ctx.fillRect(x + 15, y + 2, 32, 10);
+    ctx.fillStyle = o.glass; ctx.fillRect(x + 18, y + 4, 12, 8); ctx.fillRect(x + 32, y + 4, 12, 8);
+    ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.fillRect(x + 19, y + 5, 2, 5); ctx.fillRect(x + 33, y + 5, 2, 5);
+    ctx.fillStyle = o.edge; ctx.fillRect(x + 31, y + 13, 1, 9);
+    ctx.fillStyle = '#fff3b0'; ctx.fillRect(x + 60, y + 15, 3, 3);
+    ctx.fillStyle = '#ff3b3b'; ctx.fillRect(x + 1, y + 15, 2, 3);
+    for (const wx of [x + 14, x + 50]) {
+      ctx.fillStyle = '#1b1b2f'; ctx.beginPath(); ctx.arc(wx, y + 25, 6, 0, 7); ctx.fill();
+      ctx.fillStyle = '#b8c2d0'; ctx.fillRect(wx - 2, y + 23, 4, 4);
+    }
+    if (o.logo) drawWordmark(x + 19, y + 15, o.logo);
+    if (o.dirt > 0) {
+      ctx.globalAlpha = o.dirt * 0.85;
+      ctx.fillStyle = '#6b4a2c';
+      for (const d of G.dirt) { ctx.beginPath(); ctx.arc(x + d.dx, y + d.dy, d.r, 0, 7); ctx.fill(); }
+      ctx.globalAlpha = 1;
+    }
+  }
+  const BG_CARS = [
+    { body: '#f4f6f8', shade: '#d3dae3', edge: '#8a96a6', glass: '#9fd8ff', dirt: 0, logo: '#111111' },
+    { body: '#2b3440', shade: '#1d242d', edge: '#11161c', glass: '#7fb3d6', dirt: 0, logo: '#ffffff' },
+    { body: '#c9d3de', shade: '#a9b5c3', edge: '#6f7c8c', glass: '#9fd8ff', dirt: 0, logo: '#111111' },
+  ];
+
+  function drawBackground(cam) {
+    const sky = ctx.createLinearGradient(0, 0, 0, VH);
+    sky.addColorStop(0, '#6ccaf7'); sky.addColorStop(1, '#c8f0ff');
+    ctx.fillStyle = sky; ctx.fillRect(0, 0, VW, VH);
+    ctx.fillStyle = '#a4e3d8';
+    for (let x = 0; x <= VW; x += 4) {
+      const wx = x + cam * 0.15;
+      const h = 60 + Math.sin(wx * 0.012) * 18 + Math.sin(wx * 0.031) * 8;
+      ctx.fillRect(x, 13 * T - h, 4, h);
+    }
+    // hub wash bays with parked Flexcars
+    const off = Math.floor(cam * 0.35);
+    for (let i = Math.floor(off / 160) - 1; i < Math.floor(off / 160) + 4; i++) {
+      const bx = i * 160 - off;
+      ctx.fillStyle = '#85bfd6'; ctx.fillRect(bx + 20, 13 * T - 70, 96, 70);
+      ctx.fillStyle = '#6aa6c0'; ctx.fillRect(bx + 14, 13 * T - 76, 108, 8);
+      drawWordmark(bx + 54, 13 * T - 74, '#ffffff', false);
+      ctx.fillStyle = '#4f8aa6'; ctx.fillRect(bx + 36, 13 * T - 52, 28, 52); ctx.fillRect(bx + 72, 13 * T - 52, 28, 52);
+      ctx.fillStyle = '#9fd3e8';
+      for (let s = 0; s < 6; s++) { ctx.fillRect(bx + 36, 13 * T - 52 + s * 9, 28, 1); ctx.fillRect(bx + 72, 13 * T - 52 + s * 9, 28, 1); }
+      drawCar(bx + 92, 13 * T - 30, BG_CARS[((i % 3) + 3) % 3]);
+    }
+    ctx.fillStyle = 'rgba(200,240,255,.28)'; ctx.fillRect(0, 0, VW, 13 * T);
+    ctx.fillStyle = '#ffffff';
+    for (let i = 0; i < 6; i++) {
+      const cx = ((i * 97 - cam * 0.25) % (VW + 80) + VW + 80) % (VW + 80) - 40;
+      const cy = 24 + (i % 3) * 18;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 9, 0, 7); ctx.arc(cx + 10, cy - 4, 11, 0, 7); ctx.arc(cx + 22, cy, 8, 0, 7);
+      ctx.fill();
+    }
+    ctx.lineWidth = 1;
+    for (const b of G.bubbles) {
+      const bx = ((b.x - cam * 0.5) % VW + VW) % VW + Math.sin(b.p) * 3;
+      ctx.strokeStyle = 'rgba(255,255,255,.75)';
+      ctx.beginPath(); ctx.arc(bx, b.y, b.r, 0, 7); ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.fillRect(Math.round(bx - b.r * 0.4), Math.round(b.y - b.r * 0.5), 1, 1);
+    }
+  }
+
+  function drawTiles(cam) {
+    const c0 = Math.max(0, Math.floor(cam / T)), c1 = Math.min(COLS - 1, c0 + Math.ceil(VW / T) + 1);
+    for (let ty = 0; ty < ROWS; ty++) for (let tx = c0; tx <= c1; tx++) {
+      const c = G.tiles[ty][tx];
+      if (c === ' ') continue;
+      let img;
+      if (c === '#') img = ty === 13 ? TILES.groundTop : TILES.groundBody;
+      else if (c === 'B') img = TILES.brick;
+      else if (c === '?') img = TILES.sponge;
+      else if (c === 'U') img = TILES.used;
+      else if (c === 'X') img = TILES.stone;
+      else if (c === 'L' || c === 'R') img = TILES[c + (ty > 0 && G.tiles[ty - 1][tx] === c ? '' : 't')];
+      const b = G.bumps.get(tx + ',' + ty);
+      const off = b ? -Math.round(Math.sin(((10 - b) / 10) * Math.PI) * 4) : 0;
+      ctx.drawImage(img, Math.round(tx * T - cam), ty * T + off);
+      if (c === '?') {
+        const a = 0.25 + 0.25 * Math.sin(G.t * 0.12);
+        ctx.fillStyle = `rgba(255,255,255,${a})`;
+        ctx.fillRect(Math.round(tx * T - cam) + 2, ty * T + off + 2, 3, 3);
+      }
+    }
+  }
+
+  function drawSigns(cam) {
+    ctx.font = FONT;
+    for (const s of G.signs) {
+      const x = Math.round(s.x - cam);
+      if (x < -90 || x > VW + 90) continue;
+      const w = Math.ceil(ctx.measureText(s.label).width) + 10;
+      const by = 13 * T - 34;
+      ctx.fillStyle = '#5a3a24'; ctx.fillRect(x + 6, by + 12, 4, 22);
+      ctx.fillStyle = '#0f2a3f'; ctx.fillRect(Math.round(x + 8 - w / 2 - 1), by - 1, w + 2, 15);
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(Math.round(x + 8 - w / 2), by, w, 13);
+      ctx.fillStyle = '#0b8f9a'; ctx.fillRect(Math.round(x + 8 - w / 2), by + 11, w, 2);
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillStyle = '#0f2a3f';
+      ctx.fillText(s.label, x + 8, by + 2);
+    }
+  }
+
+  function drawFlag(x, y, clean, alpha) {
+    ctx.globalAlpha = alpha;
+    const wave = clean ? Math.round(Math.sin(G.t * 0.2)) : 0;
+    const fx = x - FLAG_W;
+    ctx.fillStyle = clean ? '#0f2a3f' : '#3d2a18';
+    ctx.fillRect(fx - 1, y - 1, FLAG_W + 1, FLAG_H + 2);
+    ctx.fillStyle = clean ? '#ffffff' : '#8a6a4a';
+    ctx.fillRect(fx, y, FLAG_W, FLAG_H);
+    ctx.fillRect(fx - 2, y + 4 + wave, 2, FLAG_H - 8);
+    if (clean) {
+      // brand stripe + wordmark
+      const stripe = ['#ff9f1c', '#ff7a3d', '#ff4f6d', '#e0569a', '#c04bd6'];
+      stripe.forEach((c, i) => { ctx.fillStyle = c; ctx.fillRect(fx + Math.round(i * FLAG_W / 5), y + FLAG_H - 3, Math.ceil(FLAG_W / 5), 3); });
+      drawWordmark(fx + Math.round((FLAG_W - MARK_W) / 2), y + 8 + wave, '#111111');
+    } else {
+      ctx.fillStyle = '#5a3f28';
+      [[-34, 3, 6, 4], [-22, 2, 5, 4], [-28, 11, 7, 4], [-12, 13, 5, 3], [-36, 15, 3, 4], [-8, 5, 4, 3]].forEach(([dx, dy, w, h]) => ctx.fillRect(x + dx, y + dy, w, h));
+      ctx.fillStyle = '#3d2a18';
+      ctx.fillRect(fx + 2, y + FLAG_H - 1, 4, 3); ctx.fillRect(fx + 16, y + FLAG_H - 1, 3, 4); ctx.fillRect(fx + 28, y + FLAG_H - 1, 4, 3);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawPole(cam) {
+    const x = Math.round(POLE_X - cam);
+    if (x < -50 || x > VW + 50) return;
+    ctx.fillStyle = '#9aa7b8'; ctx.fillRect(x - 1, POLE_TOP, 3, POLE_BOTTOM - POLE_TOP);
+    ctx.fillStyle = '#eef3f8'; ctx.fillRect(x - 1, POLE_TOP, 1, POLE_BOTTOM - POLE_TOP);
+    ctx.fillStyle = '#c04bd6'; ctx.fillRect(x - 3, POLE_TOP - 6, 7, 7);
+    ctx.fillStyle = '#ff9f1c'; ctx.fillRect(x - 2, POLE_TOP - 5, 5, 5);
+    const f = G.flag;
+    if (f.dirtyA > 0) drawFlag(x - 1, Math.round(f.dirtyY), false, f.dirtyA);
+    if (f.cleanY !== null) drawFlag(x - 1, Math.round(f.cleanY), true, 1);
+  }
+
+  function drawHeroCar(cam) {
+    const x = Math.round(CAR_X - cam), y = 13 * T - 30;
+    if (x < -80 || x > VW + 20) return;
+    drawCar(x, y, { body: '#f4f6f8', shade: '#d3dae3', edge: '#8a96a6', glass: '#9fd8ff', dirt: G.carDirt, logo: '#111111' });
+    if (G.carDirt <= 0 && G.t % 40 < 20) {
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(x + 40, y + 2, 1, 5); ctx.fillRect(x + 38, y + 4, 5, 1);
+    }
+    if (G.partner) {
+      const other = role === 'A' ? 'B' : 'A';
+      ctx.drawImage(TECH[other].standL, x + 68, 13 * T - 16);
+    }
+  }
+
+  function drawEntities(cam) {
+    for (const d of G.drops) {
+      if (d.got || d.hidden) continue;
+      const x = Math.round(d.x - cam);
+      if (x < -12 || x > VW + 12) continue;
+      const y = Math.round(d.y + Math.sin(d.t) * 1.5);
+      ctx.fillStyle = `rgba(255,210,63,${0.25 + 0.2 * Math.sin(G.t * 0.15 + d.t)})`;
+      ctx.fillRect(x - 2, y - 1, 14, 15);
+      ctx.drawImage(SPR.card, x, y);
+    }
+    // Station gates
+    for (let i = 1; i < STAGES.length; i++) {
+      if (G.open[i]) continue;
+      const x = Math.round(gateX(i) - cam);
+      if (x < -10 || x > VW + 10) continue;
+      ctx.fillStyle = 'rgba(11,143,154,.28)'; ctx.fillRect(x - 3, 0, 6, 13 * T);
+      for (let y = (G.t % 16) - 16; y < 13 * T; y += 16) {
+        ctx.fillStyle = '#ffd23f'; ctx.fillRect(x - 1, y, 2, 8);
+        ctx.fillStyle = '#0f2a3f'; ctx.fillRect(x - 1, y + 8, 2, 8);
+      }
+      // lock badge
+      ctx.fillStyle = '#0f2a3f'; ctx.fillRect(x - 6, 13 * T - 58, 12, 11);
+      ctx.fillStyle = '#ffd23f'; ctx.fillRect(x - 5, 13 * T - 57, 10, 9);
+      ctx.fillStyle = '#0f2a3f'; ctx.fillRect(x - 3, 13 * T - 62, 6, 1); ctx.fillRect(x - 4, 13 * T - 61, 1, 4); ctx.fillRect(x + 3, 13 * T - 61, 1, 4);
+      ctx.fillRect(x - 1, 13 * T - 54, 2, 3);
+    }
+    for (const e of G.mud) {
+      const x = Math.round(e.x - cam - 1);
+      if (x < -20 || x > VW + 20) continue;
+      if (e.dead) {
+        if (e.squash <= 0) continue;
+        ctx.globalAlpha = Math.min(1, e.squash / 20);
+        ctx.fillStyle = '#56321a'; ctx.fillRect(x + 1, e.y + e.h - 4, 14, 4);
+        ctx.fillStyle = '#7a4a26'; ctx.fillRect(x + 2, e.y + e.h - 5, 12, 3);
+        ctx.globalAlpha = 1;
+        continue;
+      }
+      ctx.drawImage(Math.floor(e.t / 12) % 2 ? SPR.mud2 : SPR.mud, x, Math.round(e.y));
+    }
+    if (!(P.inv > 0 && Math.floor(P.inv / 4) % 2)) {
+      const air = !P.onGround && G.flag.phase !== 'slide';
+      let img;
+      if (air) img = 'jump';
+      else if (Math.abs(P.vx) > 0.1) img = Math.floor(P.anim) % 2 ? 'walk' : 'stand';
+      else img = 'stand';
+      ctx.drawImage(TECH[role][img + (P.face < 0 ? 'L' : '')], Math.round(P.x - 2 - cam), Math.round(P.y - 1));
+    }
+    for (const pt of G.particles) {
+      const x = Math.round(pt.x - cam), y = Math.round(pt.y);
+      if (pt.kind === 'card') { ctx.globalAlpha = Math.min(1, pt.life / 15); ctx.drawImage(SPR.card, x, y); ctx.globalAlpha = 1; }
+      else if (pt.kind === 'spark') {
+        ctx.fillStyle = '#ffffff'; ctx.globalAlpha = Math.min(1, pt.life / 12);
+        ctx.fillRect(x, y - 2, 1, 5); ctx.fillRect(x - 2, y, 5, 1); ctx.globalAlpha = 1;
+      } else { ctx.fillStyle = pt.color; ctx.fillRect(x, y, 2, 2); }
+    }
+  }
+
+  function drawHud() {
+    if (G.state === 'title') return;
+    ctx.fillStyle = 'rgba(15,42,63,.72)'; ctx.fillRect(0, 0, VW, 18);
+    ctx.fillStyle = role === 'A' ? '#0b8f9a' : '#e8913a'; ctx.fillRect(4, 3, 12, 12);
+    text(role, 6, 5, '#ffffff');
+    ctx.drawImage(SPR.card, 21, 3);
+    const count = `${G.got}/${G.total}`;
+    text(count, 35, 6, G.got >= G.total ? '#7cffb2' : '#ffffff');
+    ctx.font = FONT;
+    const bx = 35 + ctx.measureText(count).width + 8;
+    ctx.drawImage(SPR.mud, 0, 0, 16, 12, bx, 4, 11, 9);
+    text(`${G.mudCleared}`, bx + 13, 6);
+    const si = currentStage();
+    const s = STAGES[si], done = s.steps.length - stepsLeft(si);
+    text(`${si + 1} ${s.label} ${done}/${s.steps.length}`, 238, 6, done === s.steps.length ? '#7cffb2' : '#ffd23f', 'center');
+    const secs = Math.floor(G.frames / 60);
+    text(`${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`, VW - 5, 6, '#ffffff', 'right');
+
+    if (G.toast) {
+      ctx.font = FONT;
+      const lines = G.toast.lines;
+      const w = Math.max(...lines.map(l => ctx.measureText(l).width)) + 16;
+      const h = lines.length * 12 + 8;
+      ctx.globalAlpha = Math.min(1, G.toast.t / 15);
+      ctx.fillStyle = 'rgba(15,42,63,.9)'; ctx.fillRect(Math.round(VW / 2 - w / 2), 26, Math.round(w), h);
+      ctx.fillStyle = '#0b8f9a'; ctx.fillRect(Math.round(VW / 2 - w / 2), 26 + h - 2, Math.round(w), 2);
+      lines.forEach((l, i) => text(l, VW / 2, 31 + i * 12, i === 0 ? G.toast.color : '#a6c3d6', 'center'));
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  function render() {
+    const cam = Math.round(G.cam);
+    drawBackground(cam);
+    drawSigns(cam);
+    drawTiles(cam);
+    drawPole(cam);
+    drawHeroCar(cam);
+    drawEntities(cam);
+    drawHud();
+  }
+
+  // ---------- Flow ----------
+  const ov = { title: document.getElementById('ovTitle'), pause: document.getElementById('ovPause'), win: document.getElementById('ovWin') };
+  function blurActive() { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); }
+  function ensureAudio() {
+    try {
+      if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
+      if (AC.state === 'suspended') AC.resume();
+    } catch (e) { AC = null; }
+  }
+  function start(r) {
+    if (G.state !== 'title') return;
+    role = r;
+    ensureAudio();
+    G.state = 'play'; ov.title.hidden = true; blurActive();
+  }
+  function restart() {
+    ensureAudio();
+    newGame('play'); ov.win.hidden = true; blurActive();
+  }
+  function setPaused(on) {
+    G.state = on ? 'paused' : 'play'; ov.pause.hidden = !on;
+    if (!on) blurActive();
+  }
+  function showWin() {
+    document.getElementById('rating').textContent = G.hits === 0 ? 'SPOTLESS' : G.hits <= 2 ? 'SHOWROOM READY' : 'CLEAN';
+    document.getElementById('sDrops').textContent = `${G.got}/${G.total}`;
+    document.getElementById('sQuota').textContent = `${G.hits}`;
+    document.getElementById('sMud').textContent = `${G.mudCleared}/${G.mud.length}`;
+    const secs = Math.floor(G.frames / 60);
+    document.getElementById('sTime').textContent = `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
+    ov.win.hidden = false;
+    document.getElementById('againBtn').focus({ preventScroll: true });
+  }
+  document.getElementById('pickA').addEventListener('click', () => start('A'));
+  document.getElementById('pickB').addEventListener('click', () => start('B'));
+  document.getElementById('againBtn').addEventListener('click', restart);
+  document.getElementById('resumeBtn').addEventListener('click', () => setPaused(false));
+
+  // ---------- Input ----------
+  const KEYMAP = {
+    ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right',
+    ArrowUp: 'jump', KeyW: 'jump', Space: 'jump', KeyZ: 'jump',
+    ShiftLeft: 'run', ShiftRight: 'run', KeyX: 'run',
+    Enter: 'enter', KeyP: 'pause', Escape: 'pause', KeyM: 'mute',
+  };
+  addEventListener('keydown', e => {
+    const k = KEYMAP[e.code];
+    if (!k) return;
+    if (k === 'enter' && document.activeElement && document.activeElement.tagName === 'BUTTON') return;
+    if (['left', 'right', 'jump'].includes(k) || e.code === 'ArrowDown') e.preventDefault();
+    if (!keys[k]) pressed[k] = true;
+    keys[k] = true;
+  });
+  addEventListener('keyup', e => { const k = KEYMAP[e.code]; if (k) keys[k] = false; });
+  addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+  document.addEventListener('visibilitychange', () => { if (document.hidden && G.state === 'play') setPaused(true); });
+
+  document.querySelectorAll('.pad [data-key]').forEach(btn => {
+    const k = btn.dataset.key;
+    const down = e => { e.preventDefault(); ensureAudio(); if (!keys[k]) pressed[k] = true; keys[k] = true; };
+    const up = e => { e.preventDefault(); keys[k] = false; };
+    btn.addEventListener('pointerdown', down);
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => btn.addEventListener(t, up));
+  });
+  const runBtn = document.getElementById('runToggle');
+  runBtn.addEventListener('click', () => { touchRun = !touchRun; runBtn.setAttribute('aria-pressed', String(touchRun)); });
+
+  // ---------- Loop ----------
+  newGame('title');
+  let last = performance.now(), acc = 0;
+  const STEP = 1000 / 60;
+  function frame(now) {
+    acc += Math.min(100, now - last); last = now;
+    while (acc >= STEP) { step(); acc -= STEP; }
+    render();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+
+</body>
+</html>
